@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WoS 集結時間管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      :root {
+        --accent: #12b3cf;
+        --accent-dark: #078ea6;
+        --success: #43ad4b;
+        --surface: #f7f7f7;
+        --line: #cfcfcf;
+        --ink: #111;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background: linear-gradient(180deg, #eaf8ff 0%, #f8fcff 54%, #eaf8ff 100%);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .app-shell {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 22px 18px 40px;
+      }
+
+      .page-title {
+        font-size: clamp(1.65rem, 3.6vw, 2.65rem);
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      .utc-panel,
+      .control-panel,
+      .result-panel {
+        border: 1px solid rgba(7, 142, 166, 0.24);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: 0 10px 24px rgba(31, 128, 154, 0.12);
+      }
+
+      .utc-clock {
+        font-size: clamp(1.35rem, 3.2vw, 2.35rem);
+        font-weight: 800;
+        color: var(--accent-dark);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .section-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+      }
+
+      .setting-stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .setting-label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 1.1rem;
+        font-weight: 800;
+      }
+
+      .form-label,
+      .form-check-label,
+      .form-text {
+        font-weight: 700;
+      }
+
+      .form-control {
+        min-height: 40px;
+        max-width: 280px;
+        font-size: 0.95rem;
+        border: 2px solid #7d7d7d;
+        border-radius: 5px;
+      }
+
+      .form-check-input {
+        width: 1.05rem;
+        height: 1.05rem;
+        margin-top: 0.18rem;
+        border: 2px solid #7d7d7d;
+      }
+
+      .settings-body[hidden],
+      .players-body[hidden] {
+        display: none;
+      }
+
+      .result-value {
+        font-size: clamp(1.65rem, 4vw, 2.8rem);
+        font-weight: 800;
+        color: var(--accent-dark);
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+
+      .result-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 12px;
+        font-size: 1.05rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .result-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 8px 10px;
+        border: 1px solid rgba(7, 142, 166, 0.18);
+        border-radius: 6px;
+        background: rgba(223, 247, 251, 0.42);
+      }
+
+      .result-sub {
+        color: #555;
+        font-size: 0.9rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .slowest-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: #dff7fb;
+        color: var(--accent-dark);
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .players-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .player-grid {
+        width: 100%;
+      }
+
+      .player-header,
+      .player-tile {
+        display: grid;
+        grid-template-columns: 8% 40% 14% 6% 18% 10%;
+        gap: 10px;
+        align-items: center;
+        justify-content: start;
+        justify-items: stretch;
+        width: 100%;
+      }
+
+      .player-gap {
+        min-width: 1px;
+      }
+
+      .player-header {
+        padding: 0 14px 4px;
+        color: #555;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .player-tile {
+        align-items: center;
+        padding: 14px;
+        border: 1px solid rgba(7, 142, 166, 0.18);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.74);
+      }
+
+      .participant-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+      }
+
+      .action-cell {
+        display: flex;
+        justify-content: center;
+      }
+
+      .participant-cell .form-check-input {
+        margin-top: 0;
+      }
+
+      .memo-cell {
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+      }
+
+      .arrival-countdown {
+        margin-top: 10px;
+        font-size: 1rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .arrival-countdown.is-late {
+        color: #dc3545;
+        font-weight: 900;
+      }
+
+      .btn-green {
+        --bs-btn-color: #fff;
+        --bs-btn-bg: var(--success);
+        --bs-btn-border-color: var(--success);
+        --bs-btn-hover-color: #fff;
+        --bs-btn-hover-bg: #34993d;
+        --bs-btn-hover-border-color: #34993d;
+        --bs-btn-active-bg: #2e8836;
+        --bs-btn-active-border-color: #2e8836;
+        min-height: 44px;
+        padding-inline: 18px;
+        font-size: 1rem;
+        font-weight: 700;
+        border-radius: 8px;
+      }
+
+      .btn-delete {
+        min-height: 40px;
+        padding-inline: 10px;
+        font-size: 0.9rem;
+      }
+
+      .note-list {
+        font-size: clamp(0.95rem, 1.6vw, 1.05rem);
+        line-height: 1.75;
+      }
+
+      .compact-button {
+        width: auto;
+        min-height: 40px;
+      }
+
+      @media (max-width: 575.98px) {
+        .app-shell {
+          padding-inline: 12px;
+        }
+
+        .btn-green,
+        .btn-outline-secondary {
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 991.98px) {
+        .player-grid {
+          width: 100%;
+          overflow-x: auto;
+        }
+
+        .player-header,
+        .player-tile {
+          min-width: 720px;
+          grid-template-columns: 8% 40% 14% 6% 18% 10%;
+          justify-content: start;
+        }
+      }
+
+      @media (max-width: 575.98px) {
+        .player-header,
+        .player-tile {
+          grid-template-columns: 1fr;
+        }
+
+        .form-control {
+          max-width: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="mb-3">
+        <h1 class="page-title mb-3">WoS 集結時間管理</h1>
+
+        <section class="utc-panel p-3 p-md-4" aria-label="現在のUTC時刻">
+          <div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3">
+            <div>
+              <div class="text-uppercase fw-bold text-secondary">Current UTC Time</div>
+              <div id="utcClock" class="utc-clock">--:--:--</div>
+            </div>
+            <div class="text-lg-end fw-semibold text-secondary">
+              <div id="utcDate">----</div>
+              <div>現在時刻はUTCでリアルタイム表示</div>
+            </div>
+          </div>
+        </section>
+      </header>
+
+      <section class="row g-3 mb-4" aria-label="計算結果">
+        <div class="col-12 col-lg-6">
+          <div class="result-panel h-100 p-3 p-md-4">
+            <div class="section-title mb-2">計算結果：カウントダウンモード</div>
+            <div id="countdownResults" class="result-list"></div>
+            <div class="result-sub mt-3" id="countdownSummary">一番遅い人を0秒として表示します。</div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-6">
+          <div class="result-panel h-100 p-3 p-md-4">
+            <div class="section-title mb-2">計算結果：集結到達時間指定モード</div>
+            <div class="result-value" id="arrivalUtcTime">--:--:--</div>
+            <div id="arrivalCountdown" class="arrival-countdown">最初の集結の期限まで: --秒</div>
+            <div class="result-sub mt-2" id="arrivalSummary">計算するボタンを押すと、到達指定時刻を固定表示します。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="control-panel p-3 p-md-4 mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+          <div class="section-title">設定</div>
+          <button id="toggleSettings" class="btn btn-outline-secondary fw-bold compact-button" type="button" aria-expanded="true" aria-controls="settingsBody">設定を閉じる</button>
+        </div>
+
+        <div id="settingsBody" class="settings-body">
+          <div class="setting-stack">
+            <div>
+              <div class="setting-label">集結分数</div>
+              <div class="d-flex flex-column flex-sm-row gap-3">
+                <div class="form-check">
+                  <input id="rally5" class="form-check-input" type="radio" name="rallyMinutes" value="5" checked>
+                  <label class="form-check-label" for="rally5">5分集結</label>
+                </div>
+                <div class="form-check">
+                  <input id="rally10" class="form-check-input" type="radio" name="rallyMinutes" value="10">
+                  <label class="form-check-label" for="rally10">10分集結</label>
+                </div>
+                <div class="form-check">
+                  <input id="rally1" class="form-check-input" type="radio" name="rallyMinutes" value="1">
+                  <label class="form-check-label" for="rally1">1分集結</label>
+                </div>
+                <div class="form-check">
+                  <input id="rally3" class="form-check-input" type="radio" name="rallyMinutes" value="3">
+                  <label class="form-check-label" for="rally3">3分集結</label>
+                </div>
+              </div>
+              <div class="form-text">全員同じ集結時間として計算します。</div>
+            </div>
+
+            <div>
+              <label for="bufferSeconds" class="setting-label">余裕時間秒数</label>
+              <input id="bufferSeconds" class="form-control" type="number" min="0" step="1" inputmode="numeric" value="20">
+              <div class="form-text">集結到達時間指定モードで、最長行軍 + 集結時間に追加する安全余裕として使います。</div>
+            </div>
+
+            <div>
+              <div class="setting-label">集結時間指定</div>
+              <div class="form-check">
+                <input id="roundArrivalNone" class="form-check-input" type="radio" name="roundArrival" value="none">
+                <label class="form-check-label" for="roundArrivalNone">調整しない</label>
+              </div>
+              <div class="form-check mt-2">
+                <input id="roundArrivalSeconds" class="form-check-input" type="radio" name="roundArrival" value="x0" checked>
+                <label class="form-check-label" for="roundArrivalSeconds">到達指定秒をキリよくx0秒にする</label>
+              </div>
+              <div class="form-check mt-2">
+                <input id="roundArrivalMinute" class="form-check-input" type="radio" name="roundArrival" value="00">
+                <label class="form-check-label" for="roundArrivalMinute">到達指定秒をキリよく00秒にする</label>
+              </div>
+              <div class="form-text">x0秒は次の10秒境界、00秒は次の分ちょうどへ切り上げます。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <button id="calculate" class="btn btn-green w-100" type="button">計算する</button>
+        </div>
+      </section>
+
+      <section class="control-panel p-3 p-md-4 mb-4" aria-label="プレイヤー入力">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+          <div class="section-title">プレイヤー</div>
+          <button id="togglePlayers" class="btn btn-outline-secondary fw-bold compact-button" type="button" aria-expanded="true" aria-controls="playersBody">プレイヤー入力を閉じる</button>
+        </div>
+
+        <div id="playersBody" class="players-body">
+          <div class="player-grid">
+            <div class="player-header" aria-hidden="true">
+              <div class="text-center">参加</div>
+              <div>プレイヤー名</div>
+              <div>行軍秒数</div>
+              <div class="player-gap"></div>
+              <div class="text-center">基準</div>
+              <div class="text-center">操作</div>
+            </div>
+            <div id="playerRows" class="players-stack"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="d-flex flex-column flex-sm-row gap-2 mb-5">
+        <button id="addPlayer" class="btn btn-green compact-button" type="button">プレイヤー追加</button>
+        <button id="resetContent" class="btn btn-danger compact-button fw-bold" type="button">内容をリセット</button>
+      </div>
+
+      <section>
+        <h2 class="h3 fw-bold mb-3">使い方</h2>
+        <ul class="note-list mb-0">
+          <li>各プレイヤーの行軍時間を秒数で入力します。</li>
+          <li>今回の集結に参加するプレイヤーだけチェックを入れます。</li>
+          <li>集結分数を選び、必要なら余裕時間秒数を入れます。</li>
+          <li>カウントダウンモードでは、一番行軍が遅い人を0秒として、他の人が何秒で集結を開始するかを表示します。</li>
+          <li>集結到達時間指定モードでは、最長行軍時間 + 集結時間 + 余裕時間から、ゲーム内の集結到達時間を何分に合わせるかを表示します。</li>
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      const rowsEl = document.getElementById("playerRows");
+      const utcClockEl = document.getElementById("utcClock");
+      const utcDateEl = document.getElementById("utcDate");
+      const settingsBodyEl = document.getElementById("settingsBody");
+      const toggleSettingsEl = document.getElementById("toggleSettings");
+      const playersBodyEl = document.getElementById("playersBody");
+      const togglePlayersEl = document.getElementById("togglePlayers");
+      const bufferSecondsEl = document.getElementById("bufferSeconds");
+      const countdownResultsEl = document.getElementById("countdownResults");
+      const countdownSummaryEl = document.getElementById("countdownSummary");
+      const arrivalUtcTimeEl = document.getElementById("arrivalUtcTime");
+      const arrivalCountdownEl = document.getElementById("arrivalCountdown");
+      const arrivalSummaryEl = document.getElementById("arrivalSummary");
+      const storageKey = "wosRallyTimeManagerState";
+
+      const defaultPlayers = [
+        { active: true, name: "プレイヤー1", seconds: 50 },
+        { active: true, name: "プレイヤー2", seconds: 45 },
+        { active: true, name: "プレイヤー3", seconds: 42 }
+      ];
+      const defaultSettings = {
+        bufferSeconds: 20,
+        rallyMinutes: "5",
+        roundArrival: "x0"
+      };
+
+      let players = defaultPlayers.map((player) => ({ ...player }));
+      let lastArrivalResult = null;
+
+      const pad = (value) => String(value).padStart(2, "0");
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function secondsToClock(totalSeconds) {
+        const safeSeconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+        const minutes = Math.floor(safeSeconds / 60);
+        const seconds = safeSeconds % 60;
+        return `${minutes}:${pad(seconds)}`;
+      }
+
+      function getRallySeconds() {
+        const selected = document.querySelector('input[name="rallyMinutes"]:checked');
+        return Number(selected?.value || 5) * 60;
+      }
+
+      function getBufferSeconds() {
+        return Math.max(0, Math.floor(Number(bufferSecondsEl.value) || 0));
+      }
+
+      function getActivePlayers() {
+        return players.filter((player) => player.active);
+      }
+
+      function getMaxMarchSeconds() {
+        return getActivePlayers().reduce((max, player) => Math.max(max, Math.max(0, Number(player.seconds) || 0)), 0);
+      }
+
+      function getRoundArrivalMode() {
+        const selected = document.querySelector('input[name="roundArrival"]:checked');
+        return selected?.value || "none";
+      }
+
+      function applySettings(settings) {
+        const mergedSettings = { ...defaultSettings, ...settings };
+        bufferSecondsEl.value = mergedSettings.bufferSeconds;
+        const rallyInput = document.querySelector(`input[name="rallyMinutes"][value="${mergedSettings.rallyMinutes}"]`);
+        if (rallyInput) rallyInput.checked = true;
+        const roundInput = document.querySelector(`input[name="roundArrival"][value="${mergedSettings.roundArrival}"]`);
+        if (roundInput) roundInput.checked = true;
+      }
+
+      function saveState() {
+        const state = {
+          arrivalResult: lastArrivalResult ? {
+            arrivalUtc: lastArrivalResult.arrivalUtc.toISOString(),
+            bufferSeconds: lastArrivalResult.bufferSeconds,
+            calculatedAt: lastArrivalResult.calculatedAt.toISOString(),
+            maxMarch: lastArrivalResult.maxMarch,
+            roundedExtraSeconds: lastArrivalResult.roundedExtraSeconds,
+            rallyMinutes: lastArrivalResult.rallyMinutes,
+            rallySeconds: lastArrivalResult.rallySeconds,
+            roundArrivalMode: lastArrivalResult.roundArrivalMode,
+            slowestStartAt: lastArrivalResult.slowestStartAt.toISOString(),
+            totalArrivalSeconds: lastArrivalResult.totalArrivalSeconds,
+            useRoundedMinute: lastArrivalResult.useRoundedMinute,
+            useRoundedSeconds: lastArrivalResult.useRoundedSeconds
+          } : null,
+          players,
+          settings: {
+            bufferSeconds: getBufferSeconds(),
+            rallyMinutes: String(getRallySeconds() / 60),
+            roundArrival: getRoundArrivalMode()
+          }
+        };
+        localStorage.setItem(storageKey, JSON.stringify(state));
+      }
+
+      function loadState() {
+        try {
+          const savedState = JSON.parse(localStorage.getItem(storageKey) || "null");
+          if (!savedState) {
+            applySettings(defaultSettings);
+            return;
+          }
+
+          if (Array.isArray(savedState.players) && savedState.players.length > 0) {
+            players = savedState.players.map((player, index) => ({
+              active: Boolean(player.active),
+              name: String(player.name || `プレイヤー${index + 1}`),
+              seconds: Math.max(0, Math.floor(Number(player.seconds) || 0))
+            }));
+          }
+          applySettings(savedState.settings);
+          if (savedState.arrivalResult) {
+            restoreArrivalResult(savedState.arrivalResult);
+          }
+        } catch (error) {
+          applySettings(defaultSettings);
+        }
+      }
+
+      function restoreArrivalResult(savedResult) {
+        const arrivalUtc = new Date(savedResult.arrivalUtc);
+        const calculatedAt = new Date(savedResult.calculatedAt);
+        const slowestStartAt = new Date(savedResult.slowestStartAt);
+        if (Number.isNaN(arrivalUtc.getTime()) || Number.isNaN(calculatedAt.getTime()) || Number.isNaN(slowestStartAt.getTime())) return;
+
+        lastArrivalResult = {
+          arrivalUtc,
+          bufferSeconds: Math.max(0, Math.floor(Number(savedResult.bufferSeconds) || 0)),
+          calculatedAt,
+          maxMarch: Math.max(0, Math.floor(Number(savedResult.maxMarch) || 0)),
+          roundedExtraSeconds: Math.max(0, Math.floor(Number(savedResult.roundedExtraSeconds) || 0)),
+          rallyMinutes: Math.max(0, Number(savedResult.rallyMinutes) || 0),
+          rallySeconds: Math.max(0, Math.floor(Number(savedResult.rallySeconds) || 0)),
+          roundArrivalMode: savedResult.roundArrivalMode || "none",
+          slowestStartAt,
+          totalArrivalSeconds: Math.max(0, Math.floor(Number(savedResult.totalArrivalSeconds) || 0)),
+          useRoundedMinute: Boolean(savedResult.useRoundedMinute),
+          useRoundedSeconds: Boolean(savedResult.useRoundedSeconds)
+        };
+
+        arrivalUtcTimeEl.textContent = `${pad(arrivalUtc.getUTCHours())}:${pad(arrivalUtc.getUTCMinutes())}:${pad(arrivalUtc.getUTCSeconds())} UTC`;
+        const roundedLabel = lastArrivalResult.roundArrivalMode === "00" ? "00秒調整" : "x0秒調整";
+        arrivalSummaryEl.textContent = `集結時間: ${lastArrivalResult.rallyMinutes}分、最長行軍: ${lastArrivalResult.maxMarch}秒。${lastArrivalResult.roundedExtraSeconds > 0 ? ` ${roundedLabel} +${lastArrivalResult.roundedExtraSeconds}秒。` : ""}`;
+        updateArrivalCountdown();
+      }
+
+      function roundUpToTenSeconds(date) {
+        const rounded = new Date(date.getTime());
+        const remainder = rounded.getUTCSeconds() % 10;
+        if (remainder === 0 && rounded.getUTCMilliseconds() === 0) return rounded;
+        rounded.setUTCSeconds(rounded.getUTCSeconds() + (10 - remainder), 0);
+        return rounded;
+      }
+
+      function roundUpToMinute(date) {
+        const rounded = new Date(date.getTime());
+        if (rounded.getUTCSeconds() === 0 && rounded.getUTCMilliseconds() === 0) return rounded;
+        rounded.setUTCMinutes(rounded.getUTCMinutes() + 1, 0, 0);
+        return rounded;
+      }
+
+      function updateClock() {
+        const now = new Date();
+        utcClockEl.textContent = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
+        utcDateEl.textContent = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())} UTC`;
+        updateArrivalCountdown();
+      }
+
+      function renderRows() {
+        rowsEl.innerHTML = "";
+        players.forEach((player, index) => {
+          const row = document.createElement("div");
+          row.className = "player-tile";
+          row.innerHTML = `
+            <div class="participant-cell">
+              <input class="form-check-input player-active" type="checkbox" ${player.active ? "checked" : ""} aria-label="今回の集結に参加">
+            </div>
+            <div>
+              <input class="form-control player-name" type="text" value="${escapeHtml(player.name)}" aria-label="プレイヤー名">
+            </div>
+            <div>
+              <input class="form-control march-seconds" type="number" min="0" step="1" inputmode="numeric" value="${Number(player.seconds) || 0}" aria-label="行軍秒数">
+            </div>
+            <div class="player-gap"></div>
+            <div class="memo-cell">-</div>
+            <div class="action-cell">
+              <button class="btn btn-green btn-delete" type="button">削除</button>
+            </div>
+          `;
+
+          row.querySelector(".player-active").addEventListener("change", (event) => {
+            players[index].active = event.target.checked;
+            saveState();
+            updateCountdownResults();
+          });
+
+          row.querySelector(".player-name").addEventListener("input", (event) => {
+            players[index].name = event.target.value;
+            saveState();
+            updateCountdownResults();
+          });
+
+          row.querySelector(".march-seconds").addEventListener("input", (event) => {
+            players[index].seconds = Math.max(0, Math.floor(Number(event.target.value) || 0));
+            saveState();
+            updateCountdownResults();
+          });
+
+          row.querySelector(".btn-delete").addEventListener("click", () => {
+            players.splice(index, 1);
+            saveState();
+            renderRows();
+            updateCountdownResults();
+          });
+
+          rowsEl.appendChild(row);
+        });
+        updateCountdownResults();
+      }
+
+      function updateCountdownResults() {
+        const maxMarch = getMaxMarchSeconds();
+        const activePlayers = getActivePlayers();
+        const slowestIndexes = players
+          .map((player, index) => ({ active: player.active, index, seconds: Math.max(0, Number(player.seconds) || 0) }))
+          .filter((player) => player.active && player.seconds === maxMarch)
+          .map((player) => player.index);
+
+        if (activePlayers.length === 0) {
+          countdownResultsEl.innerHTML = '<div class="result-line"><span>参加者なし</span><span>-</span></div>';
+          countdownSummaryEl.textContent = "参加チェックを入れると計算します。";
+        } else {
+          countdownResultsEl.innerHTML = activePlayers.map((player) => {
+            const marchSeconds = Math.max(0, Number(player.seconds) || 0);
+            const offsetSeconds = Math.max(0, maxMarch - marchSeconds);
+            return `
+              <div class="result-line">
+                <span>${escapeHtml(player.name || "未入力")}</span>
+                <span>${offsetSeconds}秒</span>
+              </div>
+            `;
+          }).join("");
+        countdownSummaryEl.textContent = `集結時間: ${getRallySeconds() / 60}分、最長行軍: ${maxMarch}秒。`;
+        }
+
+        rowsEl.querySelectorAll(".player-tile").forEach((row, index) => {
+          const player = players[index];
+          const marchSeconds = Math.max(0, Number(player.seconds) || 0);
+          const offsetSeconds = Math.max(0, maxMarch - marchSeconds);
+          const memoEl = row.querySelector(".memo-cell");
+
+          if (!player.active) {
+            memoEl.textContent = "-";
+          } else if (slowestIndexes.includes(index)) {
+            memoEl.innerHTML = '<span class="slowest-badge">基準 0秒</span>';
+          } else {
+            memoEl.textContent = `${offsetSeconds}秒`;
+          }
+        });
+      }
+
+      function calculateArrivalResult() {
+        if (getActivePlayers().length === 0) {
+          lastArrivalResult = null;
+          arrivalUtcTimeEl.textContent = "--:--:--";
+          arrivalCountdownEl.textContent = "最初の集結の期限まで: --秒";
+          arrivalCountdownEl.classList.remove("is-late");
+          arrivalSummaryEl.textContent = "参加チェックを入れてから計算してください。";
+          return;
+        }
+
+        const maxMarch = getMaxMarchSeconds();
+        const rallySeconds = getRallySeconds();
+        const rallyMinutes = rallySeconds / 60;
+        const bufferSeconds = getBufferSeconds();
+        const calculatedAt = new Date();
+        const totalArrivalSeconds = maxMarch + rallySeconds + bufferSeconds;
+        const rawArrivalUtc = new Date(calculatedAt.getTime() + totalArrivalSeconds * 1000);
+        const roundArrivalMode = getRoundArrivalMode();
+        const arrivalUtc = roundArrivalMode === "00" ? roundUpToMinute(rawArrivalUtc) : (roundArrivalMode === "x0" ? roundUpToTenSeconds(rawArrivalUtc) : rawArrivalUtc);
+        const roundedExtraSeconds = Math.round((arrivalUtc.getTime() - rawArrivalUtc.getTime()) / 1000);
+        const slowestStartAt = new Date(arrivalUtc.getTime() - (maxMarch + rallySeconds) * 1000);
+
+        lastArrivalResult = {
+          arrivalUtc,
+          bufferSeconds,
+          calculatedAt,
+          maxMarch,
+          roundedExtraSeconds,
+          rallyMinutes,
+          rallySeconds,
+          roundArrivalMode,
+          slowestStartAt,
+          totalArrivalSeconds,
+          useRoundedMinute: roundArrivalMode === "00",
+          useRoundedSeconds: roundArrivalMode === "x0"
+        };
+
+        arrivalUtcTimeEl.textContent = `${pad(arrivalUtc.getUTCHours())}:${pad(arrivalUtc.getUTCMinutes())}:${pad(arrivalUtc.getUTCSeconds())} UTC`;
+        const roundedLabel = roundArrivalMode === "00" ? "00秒調整" : "x0秒調整";
+        arrivalSummaryEl.textContent = `集結時間: ${rallyMinutes}分、最長行軍: ${maxMarch}秒。${roundedExtraSeconds > 0 ? ` ${roundedLabel} +${roundedExtraSeconds}秒。` : ""}`;
+        updateArrivalCountdown();
+        saveState();
+      }
+
+      function calculateResults() {
+        updateCountdownResults();
+        calculateArrivalResult();
+      }
+
+      function getRemainingSeconds(targetDate) {
+        return Math.ceil((targetDate.getTime() - Date.now()) / 1000);
+      }
+
+      function updateArrivalCountdown() {
+        if (!lastArrivalResult) return;
+        const remainingSeconds = getRemainingSeconds(lastArrivalResult.slowestStartAt);
+        arrivalCountdownEl.textContent = `最初の集結の期限まで: ${remainingSeconds}秒`;
+        arrivalCountdownEl.classList.toggle("is-late", remainingSeconds < 0);
+      }
+
+      document.getElementById("addPlayer").addEventListener("click", () => {
+        players.push({ active: true, name: `プレイヤー${players.length + 1}`, seconds: 0 });
+        saveState();
+        renderRows();
+      });
+
+      document.getElementById("resetContent").addEventListener("click", () => {
+        const shouldReset = window.confirm("入力したプレイヤー情報と設定をすべてリセットします。本当に消していいですか？");
+        if (!shouldReset) return;
+
+        localStorage.removeItem(storageKey);
+        players = defaultPlayers.map((player) => ({ ...player }));
+        applySettings(defaultSettings);
+        lastArrivalResult = null;
+        arrivalUtcTimeEl.textContent = "--:--:--";
+        arrivalCountdownEl.textContent = "最初の集結の期限まで: --秒";
+        arrivalCountdownEl.classList.remove("is-late");
+        arrivalSummaryEl.textContent = "計算するボタンを押すと、到達指定時刻を固定表示します。";
+        renderRows();
+        saveState();
+      });
+
+      document.getElementById("calculate").addEventListener("click", calculateResults);
+      toggleSettingsEl.addEventListener("click", () => {
+        const nextHidden = !settingsBodyEl.hidden;
+        settingsBodyEl.hidden = nextHidden;
+        toggleSettingsEl.setAttribute("aria-expanded", String(!nextHidden));
+        toggleSettingsEl.textContent = nextHidden ? "設定を開く" : "設定を閉じる";
+      });
+      togglePlayersEl.addEventListener("click", () => {
+        const nextHidden = !playersBodyEl.hidden;
+        playersBodyEl.hidden = nextHidden;
+        togglePlayersEl.setAttribute("aria-expanded", String(!nextHidden));
+        togglePlayersEl.textContent = nextHidden ? "プレイヤー入力を開く" : "プレイヤー入力を閉じる";
+      });
+      bufferSecondsEl.addEventListener("input", () => {
+        saveState();
+        updateCountdownResults();
+      });
+      document.querySelectorAll('input[name="rallyMinutes"]').forEach((input) => {
+        input.addEventListener("change", () => {
+          saveState();
+          updateCountdownResults();
+        });
+      });
+      document.querySelectorAll('input[name="roundArrival"]').forEach((input) => {
+        input.addEventListener("change", saveState);
+      });
+
+      loadState();
+      renderRows();
+      updateClock();
+      setInterval(updateClock, 1000);
+    </script>
+  </body>
+</html>
