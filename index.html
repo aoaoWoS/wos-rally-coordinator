@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WoS 集結時間管理</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
       :root {
         --accent: #12b3cf;
@@ -91,8 +92,37 @@
       }
 
       .settings-body[hidden],
-      .players-body[hidden] {
+      .players-body[hidden],
+      .mode-body[hidden] {
         display: none;
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .toggle-button {
+        width: 34px;
+        min-width: 34px;
+        height: 34px;
+        padding: 0;
+        border-radius: 6px;
+        color: var(--bs-secondary-color);
+        font-size: 0.95rem;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .toggle-button .bi {
+        display: inline-block;
+        color: currentColor;
+        font-size: 1.15rem;
+        font-weight: 900;
+        -webkit-text-stroke: 0.7px currentColor;
+        line-height: 1;
       }
 
       .result-value {
@@ -281,6 +311,11 @@
         .btn-outline-secondary {
           width: 100%;
         }
+
+        .toggle-button {
+          width: 34px;
+          min-width: 34px;
+        }
       }
 
       @media (min-width: 576px) and (max-width: 991.98px) {
@@ -378,29 +413,39 @@
       <section class="row g-3 mb-4" aria-label="計算結果">
         <div class="col-12 col-lg-6">
           <div class="result-panel h-100 p-3 p-md-4">
-            <div class="section-title mb-2">計算結果：カウントダウンモード</div>
-            <div id="countdownResults" class="result-list"></div>
-            <div class="result-sub mt-3" id="countdownSummary">一番遅い人を0秒として表示します。</div>
+            <div class="panel-heading mb-2">
+              <div class="section-title">計算結果：カウントダウンモード</div>
+              <button id="toggleCountdownMode" class="btn btn-outline-secondary toggle-button" type="button" aria-expanded="true" aria-controls="countdownModeBody" aria-label="カウントダウンモードを閉じる"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+            </div>
+            <div id="countdownModeBody" class="mode-body">
+              <div id="countdownResults" class="result-list"></div>
+              <div class="result-sub mt-3" id="countdownSummary">一番遅い人を0秒として表示します。</div>
+            </div>
           </div>
         </div>
         <div class="col-12 col-lg-6">
           <div class="result-panel h-100 p-3 p-md-4">
-            <div class="section-title mb-2">計算結果：集結到達時間指定モード</div>
-            <div class="result-value" id="arrivalUtcTime">--:--:--</div>
-            <div id="arrivalCountdown" class="arrival-countdown">最初の集結の期限まで: --秒</div>
-            <div class="result-sub mt-2" id="arrivalSummary">計算するボタンを押すと、到達指定時刻を固定表示します。</div>
-            <div class="result-actions mt-3">
-              <button id="copyArrivalResult" class="btn btn-outline-secondary small-action-button fw-bold" type="button">集結時間をコピー</button>
-              <button id="resetArrivalResult" class="btn btn-danger small-danger-button fw-bold" type="button">計算結果をリセット</button>
+            <div class="panel-heading mb-2">
+              <div class="section-title">計算結果：集結到達時間指定モード</div>
+              <button id="toggleArrivalMode" class="btn btn-outline-secondary toggle-button" type="button" aria-expanded="true" aria-controls="arrivalModeBody" aria-label="集結到達時間指定モードを閉じる"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+            </div>
+            <div id="arrivalModeBody" class="mode-body">
+              <div class="result-value" id="arrivalUtcTime">--:--:--</div>
+              <div id="arrivalCountdown" class="arrival-countdown">最初の集結の期限まで: --秒</div>
+              <div class="result-sub mt-2" id="arrivalSummary">計算するボタンを押すと、到達指定時刻を固定表示します。</div>
+              <div class="result-actions mt-3">
+                <button id="copyArrivalResult" class="btn btn-outline-secondary small-action-button fw-bold" type="button">集結到達時間をコピー</button>
+                <button id="resetArrivalResult" class="btn btn-danger small-danger-button fw-bold" type="button">計算結果をリセット</button>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       <section class="control-panel p-3 p-md-4 mb-4">
-        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+        <div class="panel-heading mb-3">
           <div class="section-title">設定</div>
-          <button id="toggleSettings" class="btn btn-outline-secondary fw-bold compact-button" type="button" aria-expanded="true" aria-controls="settingsBody">設定を閉じる</button>
+          <button id="toggleSettings" class="btn btn-outline-secondary toggle-button" type="button" aria-expanded="true" aria-controls="settingsBody" aria-label="設定を閉じる"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
         </div>
 
         <div id="settingsBody" class="settings-body">
@@ -459,9 +504,9 @@
       </section>
 
       <section class="control-panel p-3 p-md-4 mb-4" aria-label="プレイヤー入力">
-        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+        <div class="panel-heading mb-3">
           <div class="section-title">プレイヤー</div>
-          <button id="togglePlayers" class="btn btn-outline-secondary fw-bold compact-button" type="button" aria-expanded="true" aria-controls="playersBody">プレイヤー入力を閉じる</button>
+          <button id="togglePlayers" class="btn btn-outline-secondary toggle-button" type="button" aria-expanded="true" aria-controls="playersBody" aria-label="プレイヤー入力を閉じる"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
         </div>
 
         <div id="playersBody" class="players-body">
@@ -504,6 +549,10 @@
       const toggleSettingsEl = document.getElementById("toggleSettings");
       const playersBodyEl = document.getElementById("playersBody");
       const togglePlayersEl = document.getElementById("togglePlayers");
+      const countdownModeBodyEl = document.getElementById("countdownModeBody");
+      const toggleCountdownModeEl = document.getElementById("toggleCountdownMode");
+      const arrivalModeBodyEl = document.getElementById("arrivalModeBody");
+      const toggleArrivalModeEl = document.getElementById("toggleArrivalMode");
       const bufferSecondsEl = document.getElementById("bufferSeconds");
       const countdownResultsEl = document.getElementById("countdownResults");
       const countdownSummaryEl = document.getElementById("countdownSummary");
@@ -674,6 +723,19 @@
         utcClockEl.textContent = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
         utcDateEl.textContent = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())} UTC`;
         updateArrivalCountdown();
+      }
+
+      function setupToggle(button, body, openLabel, closedLabel) {
+        button.addEventListener("click", () => {
+          const nextHidden = !body.hidden;
+          const icon = button.querySelector(".bi");
+          body.hidden = nextHidden;
+          if (icon) {
+            icon.className = nextHidden ? "bi bi-chevron-right" : "bi bi-chevron-down";
+          }
+          button.setAttribute("aria-expanded", String(!nextHidden));
+          button.setAttribute("aria-label", nextHidden ? closedLabel : openLabel);
+        });
       }
 
       function renderRows() {
@@ -890,18 +952,10 @@
         if (!shouldReset) return;
         clearArrivalResult();
       });
-      toggleSettingsEl.addEventListener("click", () => {
-        const nextHidden = !settingsBodyEl.hidden;
-        settingsBodyEl.hidden = nextHidden;
-        toggleSettingsEl.setAttribute("aria-expanded", String(!nextHidden));
-        toggleSettingsEl.textContent = nextHidden ? "設定を開く" : "設定を閉じる";
-      });
-      togglePlayersEl.addEventListener("click", () => {
-        const nextHidden = !playersBodyEl.hidden;
-        playersBodyEl.hidden = nextHidden;
-        togglePlayersEl.setAttribute("aria-expanded", String(!nextHidden));
-        togglePlayersEl.textContent = nextHidden ? "プレイヤー入力を開く" : "プレイヤー入力を閉じる";
-      });
+      setupToggle(toggleCountdownModeEl, countdownModeBodyEl, "カウントダウンモードを閉じる", "カウントダウンモードを開く");
+      setupToggle(toggleArrivalModeEl, arrivalModeBodyEl, "集結到達時間指定モードを閉じる", "集結到達時間指定モードを開く");
+      setupToggle(toggleSettingsEl, settingsBodyEl, "設定を閉じる", "設定を開く");
+      setupToggle(togglePlayersEl, playersBodyEl, "プレイヤー入力を閉じる", "プレイヤー入力を開く");
       bufferSecondsEl.addEventListener("input", () => {
         saveState();
         updateCountdownResults();
