@@ -709,26 +709,31 @@
           row.querySelector(".player-active").addEventListener("change", (event) => {
             players[index].active = event.target.checked;
             saveState();
+            updateCountdownResults();
           });
 
           row.querySelector(".player-name").addEventListener("input", (event) => {
             players[index].name = event.target.value;
             saveState();
+            updateCountdownResults();
           });
 
           row.querySelector(".march-seconds").addEventListener("input", (event) => {
             players[index].seconds = Math.max(0, Math.floor(Number(event.target.value) || 0));
             saveState();
+            updateCountdownResults();
           });
 
           row.querySelector(".btn-delete").addEventListener("click", () => {
             players.splice(index, 1);
             saveState();
             renderRows();
+            updateCountdownResults();
           });
 
-          rowsEl.appendChild(row);
+        rowsEl.appendChild(row);
         });
+        updateCountdownResults();
       }
 
       function updateCountdownResults() {
@@ -899,10 +904,12 @@
       });
       bufferSecondsEl.addEventListener("input", () => {
         saveState();
+        updateCountdownResults();
       });
       document.querySelectorAll('input[name="rallyMinutes"]').forEach((input) => {
         input.addEventListener("change", () => {
           saveState();
+          updateCountdownResults();
         });
       });
       document.querySelectorAll('input[name="roundArrival"]').forEach((input) => {
@@ -911,7 +918,6 @@
 
       loadState();
       renderRows();
-      updateCountdownResults();
       updateClock();
       setInterval(updateClock, 1000);
     </script>
